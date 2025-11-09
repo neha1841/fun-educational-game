@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="A safe educational drag-and-drop sequencing game about learning conceptual steps in open aneurysm repair. Classroom-friendly.">
+  <title>Safe Educational Interactive Learning Game</title>
+
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#7c3aed;
+      --muted:#9ca3af;
+      --glass: rgba(255,255,255,0.04);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0; background:linear-gradient(180deg,#031022,#07142a);
+      color:#e6eef8; min-height:100vh;
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .app{
+      width:1100px; max-width:100%;
+      display:grid; grid-template-columns:1fr 360px; gap:20px;
+    }
+    .panel{
+      background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
+      border-radius:14px; padding:18px;
+      box-shadow:0 8px 30px rgba(2,6,23,0.6);
+    }
+    header{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+    header h1{font-size:20px; margin:0;}
+    header p{margin:0; color:var(--muted); font-size:13px;}
+
+    .toolbox{display:flex; flex-wrap:wrap; gap:10px; padding:10px; border-radius:10px; background:var(--glass);}
+    .drag-item{
+      background:linear-gradient(180deg,#0f1b2a,#071226);
+      padding:10px 12px; border-radius:10px;
+      cursor:grab; border:1px solid rgba(255,255,255,0.05); min-width:190px;
+    }
+    .drag-item.dragging{opacity:0.6; transform:scale(0.98);}
+    .title{font-weight:600;}
+    .hint{font-size:12px; color:var(--muted); margin-top:6px;}
+
+    .timeline{display:grid; grid-template-columns:repeat(7,1fr); gap:12px;}
+    .slot{
+      min-height:120px; border-radius:10px; padding:10px;
+      background:rgba(255,255,255,0.02);
+      border:2px dashed rgba(255,255,255,0.06);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      transition:all .18s;
+    }
+    .slot.over{
+      background:rgba(124,58,237,0.12);
+      border-color:rgba(124,58,237,0.7);
+    }
+    .slot-label{font-size:13px; color:var(--muted);}
+    .placed{margin-top:6px;}
+
+    button{
+      background:var(--accent); border:none; padding:8px 12px;
+      border-radius:10px; color:white; font-weight:600; cursor:pointer;
+    }
+    button.ghost{background:transparent; border:1px solid rgba(255,255,255,0.06);}
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+<main class="panel">
+  <header>
+    <div style="width:46px;height:46px;border-radius:10px;background:linear-gradient(180deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-weight:800;color:white">OR</div>
+    <div>
+      <h1>Open Aneurysm Repair — Sequence Game</h1>
+      <p>Drag the cards into the correct order. Educational only.</p>
+    </div>
+  </header>
+
+  <section>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>Toolbox</strong>
+      <div>
+        <button id="checkBtn">Check Order</button>
+        <button id="shuffleBtn" class="ghost">Shuffle</button>
+        <button id="resetBtn" class="ghost">Reset</button>
+      </div>
+    </div>
+
+    <div class="toolbox" id="toolbox"></div>
+
+    <p style="font-size:13px;color:var(--muted);margin-top:6px">
+      Place each concept in the correct spot (Step 1 → Step 7).
+    </p>
+
+    <div class="timeline" id="timeline">
+      <div class="slot"><div class="slot-label">Step 1</div><div class="placed"></div></div>
+      <div class="slot"><div class="slot-label">Step 2</div><div class="placed"></div></div>
+      <div class="slot"><div class="slot-label">Step 3</div><div class="placed"></div></div>
+      <div class="slot"><div class="slot-label">Step 4</div><div class="placed"></div></div>
+      <div class="slot"><div class="slot-label">Step 5</div><div class="placed"></div></div>
+      <div class="slot"><div class="slot-label">Step 6</div><div class="placed"></div></div>
+      <div class="slot"><div class="slot-label">Step 7</div><div class="placed"></div></div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;">
+      <div class="status">Attempts: <span id="attempts">0</span></div>
+      <div id="feedback" style="font-weight:700;"></div>
+    </div>
+
+  </section>
+</main>
+
+<aside class="panel">
+  <strong>Animated Representation</strong>
+  <div style="margin:10px auto;">
+    <svg class="heart" width="200" height="200" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="60" fill="#ef476f"></circle>
+    </svg>
+  </div>
+  <p style="font-size:13px;color:var(--muted)">Heart animation placeholder (kept safe and simple).</p>
+</aside>
+
+</div>
+
+<script>
+/* =================== GAME DATA =================== */
+const ITEMS = [
+  {id:'preop', label:'Before surgery checkup', hint:'Doctors review scans and make a plan'},
+  {id:'anesthesia', label:'Anesthesia & monitors', hint:'Patient goes to sleep, team sets monitors'},
+  {id:'exposure', label:'Find the aneurysm area', hint:'Opening so doctors can see safely'},
+  {id:'repair', label:'Fix the weak spot', hint:'Repair or replace damaged section'},
+  {id:'restore', label:'Restore blood flow', hint:'Make sure blood moves correctly again'},
+  {id:'check', label:'Check for bleeding', hint:'Team checks safety and steadiness'},
+  {id:'postop', label:'Recovery monitoring', hint:'Patient goes to recovery'}
+];
+
+const CORRECT = ['preop','anesthesia','exposure','repair','restore','check','postop'];
+
+/* =================== SETUP =================== */
+const toolbox = document.getElementById('toolbox');
+const slots = Array.from(document.querySelectorAll('.slot'));
+const attemptsEl = document.getElementById('attempts');
+const feedback = document.getElementById('feedback');
+let attempts = 0;
+
+function createCard(item){
+  const div = document.createElement('div');
+  div.className = 'drag-item';
+  div.draggable = true;
+  div.dataset.id = item.id;
+  div.innerHTML = `
+    <div class="title">${item.label}</div>
+    <div class="hint">${item.hint}</div>
+  `;
+  div.addEventListener('dragstart', ()=> div.classList.add('dragging'));
+  div.addEventListener('dragend', ()=> div.classList.remove('dragging'));
+  return div;
+}
+
+function populate(){
+  toolbox.innerHTML = '';
+  ITEMS.forEach(it => toolbox.appendChild(createCard(it)));
+}
+populate();
+
+/* =================== DRAG EVENTS =================== */
+let dragged = null;
+
+document.addEventListener('dragstart', e=>{
+  if(e.target.classList.contains('drag-item')){
+    dragged = e.target;
+  }
+});
+
+document.addEventListener('dragend', ()=> dragged=null);
+
+slots.forEach(slot=>{
+  slot.addEventListener('dragover', e=>{e.preventDefault(); slot.classList.add('over');});
+  slot.addEventListener('dragleave', ()=> slot.classList.remove('over'));
+  slot.addEventListener('drop', ()=>{
+    slot.classList.remove('over');
+    if(!dragged) return;
+    const spot = slot.querySelector('.placed');
+    if(spot.firstElementChild) toolbox.appendChild(spot.firstElementChild); 
+    spot.appendChild(dragged);
+  });
+});
+
+/* =================== CHECK ORDER =================== */
+document.getElementById('checkBtn').addEventListener('click', ()=>{
+  attempts++;
+  attemptsEl.textContent = attempts;
+
+  const order = slots.map(s => s.querySelector('.placed').firstElementChild?.dataset.id);
+
+  if(order.every((id,i)=>id===CORRECT[i])){
+    feedback.textContent = "Perfect! Correct order!";
+  } else {
+    feedback.textContent = "Not quite. Try again!";
+  }
+});
+
+/* =================== SHUFFLE =================== */
+document.getElementById('shuffleBtn').addEventListener('click', ()=>{
+  // Return all cards to toolbox
+  slots.forEach(s=>{
+    const c = s.querySelector('.placed').firstElementChild;
+    if(c) toolbox.appendChild(c);
+  });
+
+  // Randomize
+  ITEMS.sort(()=>Math.random()-0.5);
+  populate();
+  feedback.textContent = "Shuffled!";
+});
+
+/* =================== RESET =================== */
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  slots.forEach(s=>{
+    const c = s.querySelector('.placed').firstElementChild;
+    if(c) toolbox.appendChild(c);
+  });
+  attempts = 0;
+  attemptsEl.textContent = 0;
+  populate();
+  feedback.textContent = "Reset!";
+});
+</script>
+
+</body>
+</html>
